@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login-RabbitHole</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --background-color: #121212;
+            --surface-color: #1E1E1E;
+            --primary-color: #03DAC6;
+            --text-primary: #FFFFFF;
+            --error-color: #CF6679;
+            --font-headings: 'Montserrat', sans-serif;
+            --font-body: 'Open Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .login-container {
+            background-color: var(--surface-color);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: var(--font-headings);
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 5px;
+            border: 2px solid #555;
+            background-color: #333;
+            color: var(--text-primary);
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: #121212;
+            font-family: var(--font-headings);
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-button:hover {
+            background-color: #018786;
+        }
+
+        #error-message {
+            color: var(--error-color);
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>Acceso a la madriguera de conejo</h1>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="login-button">Ingresar</button>
+            <p id="error-message"></p>
+        </form>
+    </div>
+
+    <script>
+        // --- LÓGICA DEL LOGIN ---
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            // Evita que el formulario se envíe de la manera tradicional
+            event.preventDefault();
+
+            // --- ¡IMPORTANTE! Define aquí tu usuario y contraseña ---
+            const correctUsername = "admin";
+            const correctPassword = "1234"; // Puedes cambiar esto
+
+            // Obtiene los valores ingresados por el usuario
+            const enteredUsername = document.getElementById('username').value;
+            const enteredPassword = document.getElementById('password').value;
+            
+            const errorMessage = document.getElementById('error-message');
+
+            // Compara los valores
+            if (enteredUsername === correctUsername && enteredPassword === correctPassword) {
+                // Si son correctos, redirige a la página de la galería
+                window.location.href = 'rabbithole.html';
+            } else {
+                // Si son incorrectos, muestra un mensaje de error
+                errorMessage.textContent = "Usuario o contraseña incorrectos.";
+            }
+        });
+    </script>
+
+</body>
+</html>
+
