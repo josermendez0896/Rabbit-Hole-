@@ -1,390 +1,280 @@
 <!DOCTYPE html>
-<html lang="es" class=""> <!-- La clase 'dark' se añadirá dinámicamente -->
+<html lang="es" class=""> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RabbitHOLE - Tu Dashboard Personal</title>
+    <title>RabbitHOLE - Dashboard</title>
+    
+    <script>
+        if (sessionStorage.getItem('rabbitHoleSession') !== 'active') {
+            // Si no hay sesión, vuelve al inicio usando ./ para móviles
+            window.location.replace('./index.html');
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* --- Animaciones --- */
+        body { transition: background-color 0.3s ease; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .fade-out { animation: fadeOut 0.5s ease-in forwards; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-
-        /* --- Estilos para Scrollbar --- */
-        #customLinksList::-webkit-scrollbar { display: none; }
-        #customLinksList { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* --- Estilos para Notificaciones (Toast) --- */
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast {
-            padding: 12px 20px;
-            border-radius: 9999px; /* pill shape */
-            color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s;
-        }
-        .toast.success { background-color: #28a745; } /* Verde */
-        .toast.error { background-color: #dc3545; } /* Rojo */
-
-        /* --- Estilos para Input Inválido --- */
-        .input-invalid {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.4);
-        }
+        
+        /* Vidrio */
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .dark .glass-panel { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; border-radius: 99px; color: white; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white antialiased">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white min-h-screen relative overflow-x-hidden">
 
-    <!-- Contenedor de Notificaciones -->
+    <div id="particles-js" class="fixed inset-0 pointer-events-none z-0"></div>
     <div id="toast-container"></div>
 
-    <!-- Contenedor Principal -->
-    <div class="flex flex-col min-h-screen items-center justify-center p-4">
+    <nav class="absolute top-0 right-0 p-4 flex items-center gap-3 z-20">
+        <button id="theme-toggle" class="glass-panel text-gray-600 dark:text-gray-300 rounded-full p-3 shadow-sm">
+            <i id="theme-icon-sun" class="fa-solid fa-sun text-xl hidden text-yellow-500"></i>
+            <i id="theme-icon-moon" class="fa-solid fa-moon text-xl hidden text-indigo-400"></i>
+        </button>
+        <button id="logoutBtn" class="glass-panel text-red-500 hover:text-red-600 rounded-full px-4 py-2 font-bold text-sm border border-red-500/20">
+            <i class="fa-solid fa-power-off mr-1"></i> SALIR
+        </button>
+    </nav>
 
-        <nav class="absolute top-0 right-0 p-6 flex items-center gap-4">
-            <button id="theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5" title="Cambiar tema">
-                <i id="theme-icon-sun" class="fa-solid fa-sun text-xl hidden"></i>
-                <i id="theme-icon-moon" class="fa-solid fa-moon text-xl hidden"></i>
-            </button>
-            <a href="login.html" class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-300 font-medium">Login</a>
-        </nav>
+    <button id="notesToggle" class="fixed left-0 top-24 bg-indigo-600 text-white p-3 rounded-r-xl shadow-lg z-40">
+        <i class="fa-solid fa-pen-to-square"></i>
+    </button>
 
-        <div class="w-full max-w-2xl text-center">
+    <div id="notesPanel" class="fixed top-0 left-0 h-full w-full sm:w-80 bg-gray-900/95 backdrop-blur-xl transform -translate-x-full transition-transform duration-300 z-50 p-6 flex flex-col border-r border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-white font-bold font-mono">NOTAS</h3>
+            <button id="closeNotes" class="text-gray-400"><i class="fa-solid fa-times text-xl"></i></button>
+        </div>
+        <textarea id="scratchpad" class="flex-1 w-full bg-black/60 text-green-400 font-mono text-sm p-4 rounded-lg border border-gray-700 outline-none resize-none" placeholder="// Tus notas aquí..."></textarea>
+    </div>
+
+    <div class="flex flex-col min-h-screen items-center justify-center p-4 z-10 relative">
+        <div class="w-full max-w-lg text-center fade-in">
             
-            <img src="Rb1.jpg" 
-                 alt="RabbitHOLE Logo" class="mx-auto mb-4 h-auto w-64"
-                 onerror="this.onerror=null; this.src='rb.png';">
+            <img src="Rb1.jpg" alt="Logo" class="mx-auto mb-6 h-32 w-auto rounded-xl shadow-2xl" onerror="this.style.display='none'">
 
-            <h2 id="welcomeMessage" class="text-2xl font-medium text-gray-600 dark:text-gray-400 mb-8"></h2>
+            <h2 id="welcomeMessage" class="text-2xl font-bold mb-2"></h2>
+            <div id="clock-display" class="text-5xl font-mono font-bold text-indigo-600 dark:text-indigo-400 mb-8 tracking-widest">00:00:00</div>
 
-            <div class="relative w-full">
-                <input 
-                    id="searchInput"
-                    type="text" 
-                    placeholder="Bienvenido al Rabbit Hole..." 
-                    class="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 placeholder-gray-500 rounded-full py-4 pl-6 pr-20 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300 shadow-lg">
-                
-                <button id="addLinkBtn" class="absolute inset-y-0 right-0 flex items-center justify-center bg-indigo-600 text-white rounded-full w-14 h-14 m-1.5 hover:bg-indigo-700 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500" title="Añadir nuevo enlace">
-                    <i class="fa fa-plus text-xl"></i>
+            <div class="relative w-full mb-6">
+                <input id="searchInput" type="text" placeholder="Buscar..." class="w-full glass-panel border-0 text-gray-800 dark:text-white rounded-full py-4 pl-6 pr-16 text-lg focus:ring-2 focus:ring-indigo-500 shadow-xl">
+                <button id="addLinkBtn" class="absolute inset-y-0 right-0 bg-indigo-600 text-white rounded-full w-12 h-12 m-2 shadow-lg flex items-center justify-center">
+                    <i class="fa fa-plus"></i>
                 </button>
             </div>
 
-            <div id="resultsContainer" class="mt-6 h-12"></div>
-
+            <div id="resultsContainer" class="flex flex-col gap-3"></div>
         </div>
     </div>
 
-    <!-- Modal para Añadir/Gestionar Enlaces -->
-    <div id="addLinkModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 m-4 fade-in">
-            <h3 class="text-2xl font-bold mb-2">Añadir Nuevo Enlace</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Guarda tus páginas favoritas con una palabra clave.</p>
-            
+    <div id="addLinkModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-2xl shadow-2xl fade-in">
+            <h3 class="text-xl font-bold mb-4 dark:text-white">Nuevo Atajo</h3>
             <form id="addLinkForm">
-                <div class="mb-4">
-                    <label for="keyword" class="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Palabra Clave</label>
-                    <input type="text" id="keyword" placeholder="ej: youtube" class="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
-                </div>
-                <div class="mb-6">
-                    <label for="url" class="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">URL del Sitio</label>
-                    <input type="text" id="url" placeholder="https://www.youtube.com" class="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all duration-200" required>
-                </div>
-                <div class="flex justify-end gap-4">
-                    <button type="button" id="cancelBtn" class="py-2 px-5 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
-                    <button type="submit" class="py-2 px-5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">Guardar Enlace</button>
+                <input type="text" id="keyword" placeholder="Palabra clave (ej: youtube)" class="w-full mb-3 p-3 rounded-lg bg-gray-50 dark:bg-black/50 dark:text-white border border-gray-300 dark:border-gray-600" required>
+                <input type="text" id="url" placeholder="https://sitio.com" class="w-full mb-4 p-3 rounded-lg bg-gray-50 dark:bg-black/50 dark:text-white border border-gray-300 dark:border-gray-600" required>
+                
+                <div id="customLinksList" class="max-h-32 overflow-y-auto mb-4 border-t border-b border-gray-600 py-2 text-sm"></div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 text-gray-500 dark:text-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Guardar</button>
                 </div>
             </form>
-            
-            <hr class="my-6 border-gray-200 dark:border-gray-600">
-            
-            <h4 class="text-lg font-bold mb-4">Enlaces Guardados</h4>
-            <div id="customLinksList" class="max-h-40 overflow-y-auto pr-2"></div>
         </div>
     </div>
-
-    <!-- MEJORA 1: Modal de Confirmación Personalizado -->
-    <div id="confirmDeleteModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-8 m-4 text-center fade-in">
-            <i class="fa fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
-            <h3 class="text-xl font-bold mb-2">Confirmar Eliminación</h3>
-            <p id="confirmDeleteText" class="text-gray-500 dark:text-gray-400 mb-6"></p>
-            <div class="flex justify-center gap-4">
-                <button id="cancelDeleteBtn" class="py-2 px-5 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
-                <button id="confirmDeleteBtn" class="py-2 px-5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">Eliminar</button>
-            </div>
-        </div>
-    </div>
-
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Referencias ---
+        const els = {
+            welcome: document.getElementById('welcomeMessage'),
+            clock: document.getElementById('clock-display'),
+            search: document.getElementById('searchInput'),
+            results: document.getElementById('resultsContainer'),
+            themeBtn: document.getElementById('theme-toggle'),
+            sun: document.getElementById('theme-icon-sun'),
+            moon: document.getElementById('theme-icon-moon'),
+            modal: document.getElementById('addLinkModal'),
+            addBtn: document.getElementById('addLinkBtn'),
+            cancelBtn: document.getElementById('cancelBtn'),
+            form: document.getElementById('addLinkForm'),
+            linkList: document.getElementById('customLinksList'),
+            urlInput: document.getElementById('url'),
+            toastBox: document.getElementById('toast-container'),
+            notesToggle: document.getElementById('notesToggle'),
+            notesPanel: document.getElementById('notesPanel'),
+            closeNotes: document.getElementById('closeNotes'),
+            scratchpad: document.getElementById('scratchpad'),
+            logoutBtn: document.getElementById('logoutBtn')
+        };
 
-        // --- ELEMENTOS DEL DOM ---
-        const welcomeMessage = document.getElementById('welcomeMessage');
-        const searchInput = document.getElementById('searchInput');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        const sunIcon = document.getElementById('theme-icon-sun');
-        const moonIcon = document.getElementById('theme-icon-moon');
-        const modal = document.getElementById('addLinkModal');
-        const addLinkBtn = document.getElementById('addLinkBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const addLinkForm = document.getElementById('addLinkForm');
-        const customLinksList = document.getElementById('customLinksList');
-        const urlInput = document.getElementById('url');
+        let customPages = JSON.parse(localStorage.getItem('customRabbitLinks') || '{}');
+        const defaultPages = { 'google': 'https://google.com', 'youtube': 'https://youtube.com' };
         
-        // Elementos del modal de confirmación
-        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
-        const confirmDeleteText = document.getElementById('confirmDeleteText');
-        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        // Sonidos seguros
+        let clickSfx = null;
+        try { clickSfx = new Audio('click.mp3'); } catch(e){}
+        const playClick = () => { if(clickSfx) clickSfx.play().catch(e=>{}); }
+
+        // --- Funciones ---
         
-        // Contenedor de notificaciones
-        const toastContainer = document.getElementById('toast-container');
+        // Reloj
+        setInterval(() => {
+            els.clock.textContent = new Date().toLocaleTimeString('es-ES', {hour12:false});
+        }, 1000);
+
+        // Saludo Hacker
+        const user = sessionStorage.getItem('rabbitUser') || 'Usuario';
+        els.welcome.innerHTML = `Hola, <span id="hacker" class="text-indigo-500 cursor-pointer">${user}</span>.`;
         
-        // --- ESTADO DE LA APLICACIÓN ---
-        const defaultPages = {
-            'google': 'https://www.google.com',
-            'youtube': 'https://www.youtube.com',
-            'github': 'https://github.com',
-            'arcade': 'arcade.html'
+        const hackerTxt = document.getElementById('hacker');
+        hackerTxt.onmouseover = e => {
+            playClick();
+            let iter = 0;
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            const interval = setInterval(() => {
+                e.target.innerText = e.target.innerText.split("").map((l, i) => {
+                    if(i < iter) return user[i];
+                    return letters[Math.floor(Math.random() * 36)];
+                }).join("");
+                if(iter >= user.length) clearInterval(interval);
+                iter += 1/3;
+            }, 30);
         };
-        let customPages = {};
-        let keywordToDelete = null; // Guardará la clave del enlace a eliminar
 
-        // --- LÓGICA ---
-
-        // MENSAJE DE BIENVENIDA (Consistente en idioma)
-        const setWelcomeMessage = () => {
-            const hour = new Date().getHours();
-            let greeting = 'Buenas noches';
-            if (hour >= 5 && hour < 12) greeting = 'Buenos días';
-            else if (hour >= 12 && hour < 20) greeting = 'Buenas tardes';
-            welcomeMessage.textContent = `${greeting}, bienvenido.`;
+        // Tema
+        const updateTheme = (dark) => {
+            if(dark) { document.documentElement.classList.add('dark'); els.sun.classList.remove('hidden'); els.moon.classList.add('hidden'); }
+            else { document.documentElement.classList.remove('dark'); els.sun.classList.add('hidden'); els.moon.classList.remove('hidden'); }
         };
+        els.themeBtn.addEventListener('click', () => {
+            playClick();
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            updateTheme(!isDark);
+        });
         
-        // MEJORA 5: Sistema de Notificaciones (Toast)
-        const showToast = (message, type = 'success') => {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            toastContainer.appendChild(toast);
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        };
+        // Carga inicial tema
+        const savedTheme = localStorage.getItem('theme');
+        updateTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
-        // GESTIÓN DEL TEMA
-        const applyTheme = (theme) => {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                sunIcon.classList.remove('hidden');
-                moonIcon.classList.add('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                sunIcon.classList.add('hidden');
-                moonIcon.classList.remove('hidden');
-            }
-        };
+        // Partículas
+        if(window.particlesJS) {
+            particlesJS("particles-js", { "particles": { "number": { "value": 40 }, "color": { "value": "#6366f1" }, "line_linked": { "enable": true, "color": "#6366f1", "opacity": 0.2 } } });
+        }
 
-        const toggleTheme = () => {
-            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        };
+        // --- Lógica Principal ---
 
-        // GESTIÓN DE ENLACES (localStorage)
-        const loadCustomLinks = () => {
-            const savedLinks = localStorage.getItem('customRabbitLinks');
-            customPages = savedLinks ? JSON.parse(savedLinks) : {};
-            renderCustomLinksList();
-        };
-
-        const saveCustomLinks = () => {
-            localStorage.setItem('customRabbitLinks', JSON.stringify(customPages));
-            renderCustomLinksList();
-        };
-        
-        // MEJORA 2: Renderizado seguro sin `innerHTML`
-        const renderCustomLinksList = () => {
-            customLinksList.innerHTML = ''; // Limpiar la lista existente
-            const keywords = Object.keys(customPages);
-            if (keywords.length === 0) {
-                const p = document.createElement('p');
-                p.className = 'text-sm text-gray-400';
-                p.textContent = 'Aún no has guardado enlaces.';
-                customLinksList.appendChild(p);
+        // Búsqueda
+        els.search.addEventListener('input', () => {
+            const q = els.search.value.toLowerCase().trim();
+            els.results.innerHTML = '';
+            
+            if(q.startsWith('/reset')) {
+                const btn = document.createElement('button');
+                btn.className = 'bg-red-600 text-white p-3 rounded-xl w-full font-bold';
+                btn.textContent = 'BORRAR TODOS LOS DATOS';
+                btn.onclick = () => { if(confirm('¿Borrar todo?')) { localStorage.clear(); location.reload(); } };
+                els.results.appendChild(btn);
                 return;
             }
-            keywords.sort().forEach(keyword => {
-                const url = customPages[keyword];
-                
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'flex justify-between items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700';
 
-                const textDiv = document.createElement('div');
-                const pKeyword = document.createElement('p');
-                pKeyword.className = 'font-semibold';
-                pKeyword.textContent = keyword;
-                
-                const aUrl = document.createElement('a');
-                aUrl.href = url;
-                aUrl.target = '_blank';
-                aUrl.className = 'text-sm text-indigo-500 hover:underline';
-                aUrl.textContent = url;
-                
-                textDiv.append(pKeyword, aUrl);
+            if(!q) return;
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.dataset.keyword = keyword;
-                deleteBtn.className = 'delete-link-btn text-gray-400 hover:text-red-500 p-2';
-                deleteBtn.title = `Eliminar "${keyword}"`;
-                deleteBtn.innerHTML = '<i class="fa fa-trash"></i>'; // Icono es seguro aquí
+            const all = { ...defaultPages, ...customPages };
+            if(all[q]) {
+                const a = document.createElement('a');
+                a.href = all[q]; a.target = '_blank';
+                a.className = 'bg-indigo-600 text-white p-4 rounded-xl font-bold flex justify-between items-center shadow-lg fade-in';
+                a.innerHTML = `<span>Ir a ${q}</span> <i class="fa fa-arrow-right"></i>`;
+                a.onclick = playClick;
+                els.results.appendChild(a);
+            } else {
+                const g = document.createElement('a');
+                g.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+                g.target = '_blank';
+                g.className = 'bg-white dark:bg-gray-800 p-4 rounded-xl shadow border border-gray-200 dark:border-gray-700 flex justify-between items-center fade-in';
+                g.innerHTML = `<span class="dark:text-white">Buscar "${q}" en Google</span> <i class="fa-brands fa-google text-gray-400"></i>`;
+                g.onclick = playClick;
+                els.results.appendChild(g);
+            }
+        });
 
-                itemDiv.append(textDiv, deleteBtn);
-                customLinksList.appendChild(itemDiv);
+        // Notas
+        els.scratchpad.value = localStorage.getItem('rabbitNotes') || '';
+        els.scratchpad.addEventListener('input', () => localStorage.setItem('rabbitNotes', els.scratchpad.value));
+        els.notesToggle.onclick = () => { playClick(); els.notesPanel.classList.remove('-translate-x-full'); };
+        els.closeNotes.onclick = () => { playClick(); els.notesPanel.classList.add('-translate-x-full'); };
+
+        // Modal Links
+        const renderLinks = () => {
+            els.linkList.innerHTML = '';
+            Object.keys(customPages).forEach(k => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between p-2 border-b border-gray-700 text-gray-300';
+                div.innerHTML = `<span>${k}</span> <button class="text-red-400 del-btn" data-k="${k}">x</button>`;
+                els.linkList.appendChild(div);
+            });
+            document.querySelectorAll('.del-btn').forEach(b => b.onclick = (e) => {
+                playClick();
+                delete customPages[e.target.dataset.k];
+                localStorage.setItem('customRabbitLinks', JSON.stringify(customPages));
+                renderLinks();
             });
         };
         
-        // MODALES
-        const openModal = () => modal.classList.remove('hidden');
-        const closeModal = () => modal.classList.add('hidden');
-        const openConfirmModal = (keyword) => {
-            keywordToDelete = keyword;
-            confirmDeleteText.textContent = `¿Estás seguro de que quieres eliminar el enlace "${keyword}"?`;
-            confirmDeleteModal.classList.remove('hidden');
-        };
-        const closeConfirmModal = () => {
-            keywordToDelete = null;
-            confirmDeleteModal.classList.add('hidden');
-        };
-
-        // BÚSQUEDA
-        const handleSearch = () => {
-            const query = searchInput.value.toLowerCase().trim();
-            resultsContainer.innerHTML = '';
-            const allPages = { ...defaultPages, ...customPages };
-
-            if (query && allPages[query]) {
-                const linkElement = document.createElement('a');
-                linkElement.href = allPages[query];
-                linkElement.innerHTML = `Ir a <strong>${query}</strong> <i class="fa-solid fa-arrow-right-long ml-2"></i>`;
-                linkElement.target = '_blank';
-                linkElement.className = 'fade-in bg-indigo-600 text-white font-bold py-3 px-6 rounded-full inline-block hover:bg-indigo-700 transition-all duration-300 shadow-md';
-                resultsContainer.appendChild(linkElement);
-            } else if (query) {
-                const notFoundElement = document.createElement('p');
-                notFoundElement.textContent = `No se encontró ningún enlace para "${query}"`;
-                notFoundElement.className = 'fade-in text-gray-500 dark:text-gray-400 mt-2';
-                resultsContainer.appendChild(notFoundElement);
-            }
-        };
+        els.addBtn.onclick = () => { playClick(); els.modal.classList.remove('hidden'); renderLinks(); };
+        els.cancelBtn.onclick = () => els.modal.classList.add('hidden');
         
-        // MEJORA 3: Validación de URL
-        const isValidUrl = (string) => {
-            try {
-                new URL(string);
-                return true;
-            } catch (_) {
-                // A simple regex fallback for URLs without protocol like "google.com"
-                const regex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-                return regex.test(string);
-            }
-        };
-
-
-        // --- EVENT LISTENERS ---
-        searchInput.addEventListener('input', handleSearch);
-        themeToggleBtn.addEventListener('click', toggleTheme);
-        addLinkBtn.addEventListener('click', openModal);
-        cancelBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-             if (e.target === modal) closeModal();
-        });
-
-        addLinkForm.addEventListener('submit', (e) => {
+        els.form.onsubmit = (e) => {
             e.preventDefault();
-            const keyword = document.getElementById('keyword').value.toLowerCase().trim();
-            let url = urlInput.value.trim();
+            playClick();
+            const k = document.getElementById('keyword').value.toLowerCase().replace(/[^a-z0-9]/g, '');
+            let u = document.getElementById('url').value;
+            if(!/^http/.test(u)) u = 'https://' + u;
             
-            urlInput.classList.remove('input-invalid');
-
-            if (!isValidUrl(url)) {
-                showToast('Por favor, introduce una URL válida.', 'error');
-                urlInput.classList.add('input-invalid');
-                return;
-            }
+            customPages[k] = u;
+            localStorage.setItem('customRabbitLinks', JSON.stringify(customPages));
+            els.form.reset();
+            els.modal.classList.add('hidden');
             
-            // Add protocol if missing
-            if (!/^https?:\/\//i.test(url)) {
-                url = 'https://' + url;
+            // Toast
+            const t = document.createElement('div');
+            t.className = 'toast bg-green-600';
+            t.textContent = 'Enlace guardado';
+            els.toastBox.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
+        };
+
+        // Logout
+        els.logoutBtn.onclick = () => {
+            if(confirm('¿Cerrar sesión?')) {
+                sessionStorage.clear();
+                window.location.replace('./index.html');
             }
-
-            if (keyword && url) {
-                customPages[keyword] = url;
-                saveCustomLinks();
-                addLinkForm.reset();
-                closeModal();
-                showToast('¡Enlace guardado con éxito!');
-            }
-        });
-        
-        urlInput.addEventListener('input', () => {
-             urlInput.classList.remove('input-invalid');
-        });
-
-        customLinksList.addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.delete-link-btn');
-            if (deleteBtn) {
-                openConfirmModal(deleteBtn.dataset.keyword);
-            }
-        });
-        
-        // Listeners para el modal de confirmación
-        cancelDeleteBtn.addEventListener('click', closeConfirmModal);
-        confirmDeleteBtn.addEventListener('click', () => {
-            if (keywordToDelete) {
-                delete customPages[keywordToDelete];
-                saveCustomLinks();
-                showToast(`Enlace "${keywordToDelete}" eliminado.`, 'success');
-            }
-            closeConfirmModal();
-        });
-        confirmDeleteModal.addEventListener('click', (e) => {
-             if (e.target === confirmDeleteModal) closeConfirmModal();
-        });
-
-
-        // --- INICIALIZACIÓN ---
-        const initialTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        applyTheme(initialTheme);
-        setWelcomeMessage();
-        loadCustomLinks();
-
+        };
     });
     </script>
 </body>
 </html>
-
