@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://placehold.co data: blob:;">
-    <title>Ars Gothica 10.5 (Estable)</title>
+    <title>Ars Gothica 10.6 (Estable Final)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const themes = {
@@ -85,7 +85,7 @@
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-full bg-gothic-accent/10 blur-3xl -z-10 pointer-events-none"></div>
             <div>
                 <h1 class="text-5xl md:text-6xl font-black text-gothic-text uppercase tracking-widest font-heading drop-shadow-lg">Ars <span class="text-gothic-primary text-shadow-glow">Gothica</span></h1>
-                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.5)</p>
+                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.6)</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
                  <button onclick="lockVault()" class="p-3 border-2 border-gothic-primary bg-gothic-panel text-gothic-primary rounded-full hover:bg-red-700 hover:text-white transition-all shadow-gothic-glow" title="Cerrar Bóveda (Pánico)">🔒</button>
@@ -228,6 +228,12 @@
         let db; let currentImageFile = null; let tempCompressedImage = null; let editorOriginalImage = null;
         let currentPage = 1; let currentFilteredItems = []; let imageSource = 'file'; let editingItemId = null; 
         let currentLayout = 'grid'; let selectMode = false; let selectedIds = new Set(); let slideshowInterval = null;
+        
+        // --- CORRECCIÓN CRÍTICA DE REFERENCIA (V10.6) ---
+        // Estas funciones deben estar definidas ANTES de ser llamadas en initDB().
+        window.setupDragDrop = () => { /* Función placeholder para evitar ReferenceError */ };
+        window.autoSaveForm = () => { /* Función placeholder para evitar ReferenceError */ };
+        // --------------------------------------------------
         
         let vaultKey = null; 
         let dbEncrypted = true; 
