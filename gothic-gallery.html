@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://placehold.co data: blob:;">
-    <title>Ars Gothica 10.2 (Tolerante)</title>
+    <title>Ars Gothica 10.4 (Definitiva)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const themes = {
@@ -85,10 +85,10 @@
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-full bg-gothic-accent/10 blur-3xl -z-10 pointer-events-none"></div>
             <div>
                 <h1 class="text-5xl md:text-6xl font-black text-gothic-text uppercase tracking-widest font-heading drop-shadow-lg">Ars <span class="text-gothic-primary text-shadow-glow">Gothica</span></h1>
-                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.2)</p>
+                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.4)</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
-                 <button onclick="lockVault()" class="p-3 border-2 border-red-900 bg-black text-red-600 rounded-full hover:bg-red-900 hover:text-white transition-all shadow-[0_0_10px_#f00]" title="Cerrar Bóveda (Pánico)">🔒</button>
+                 <button onclick="lockVault()" class="p-3 border-2 border-gothic-primary bg-gothic-panel text-gothic-primary rounded-full hover:bg-red-700 hover:text-white transition-all shadow-gothic-glow" title="Cerrar Bóveda (Pánico)">🔒</button>
                  
                  <button onclick="toggleAudio()" id="audioBtn" class="p-3 border-2 gothic-btn-primary rounded-full" title="Sinfonía Nocturna">🔇</button>
                 <div class="flex gap-2">
@@ -255,11 +255,11 @@
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AudioContext();
                 this.gain = this.ctx.createGain();
-                this.gain.gain.value = 0.15; // Low volume drone
+                this.gain.gain.value = 0.15;
                 this.gain.connect(this.ctx.destination);
                 this.osc = this.ctx.createOscillator();
                 this.osc.type = 'triangle';
-                this.osc.frequency.setValueAtTime(55, this.ctx.currentTime); // Low A (A1)
+                this.osc.frequency.setValueAtTime(55, this.ctx.currentTime);
                 this.osc.connect(this.gain);
                 this.osc.start();
                 this.ctx.suspend();
@@ -440,7 +440,7 @@
             } catch(e) { console.error(e); document.getElementById('globalLoader').classList.add('hidden'); showGothicToast("Error de Cifrado.", 'error'); }
         };
 
-        // --- OPTIMIZACIÓN DE CARGA (BATCH DECRYPTION V10.1) ---
+        // --- OPTIMIZACIÓN DE CARGA (BATCH DECRYPTION) ---
         window.loadGallery = () => {
             if(!vaultKey || !db) return;
             const t = db.transaction([STORE_NAME], 'readonly');
@@ -515,48 +515,133 @@
         window.selectSource = (s) => { imageSource=s; document.getElementById('tabFile').className = s==='file'?'gothic-tab-active font-heading uppercase tracking-widest text-gothic-primary pb-2 px-4 border-b-2 border-gothic-primary transition-colors':'text-sm font-heading text-gray-500 hover:text-gothic-primary pb-2 px-4 transition-colors'; document.getElementById('tabUrl').className = s==='url'?'gothic-tab-active font-heading uppercase tracking-widest text-gothic-primary pb-2 px-4 border-b-2 border-gothic-primary transition-colors':'text-sm font-heading text-gray-500 hover:text-gothic-primary pb-2 px-4 transition-colors'; document.getElementById('contentFile').classList.toggle('hidden', s!=='file'); document.getElementById('contentUrl').classList.toggle('hidden', s!=='url'); updateImagePreview(); }; window.cancelEdit = resetForm; window.closeConfirmModal = () => document.getElementById('confirmModal').classList.add('hidden');
         window.toggleSelectMode = () => { selectMode = !selectMode; selectedIds.clear(); document.getElementById('selectionBar').classList.toggle('hidden'); loadGallery(); }; window.toggleSelection = (id) => { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); document.getElementById('selectedCount').innerText=selectedIds.size; }; window.deleteSelected = () => { if(!confirm("¿Purgar selección?")) return; const t = db.transaction([STORE_NAME],'readwrite'); const s = t.objectStore(STORE_NAME); selectedIds.forEach(id=>s.delete(id)); t.oncomplete=()=>{toggleSelectMode(); loadGallery(); showGothicToast("Selección purgada.");}; };
         window.deleteItem = (id) => db.transaction([STORE_NAME],'readwrite').objectStore(STORE_NAME).delete(id).onsuccess = () => { loadGallery(); showGothicToast("Purgado."); };
-        
+        window.toggleFavorite = async (id) => { 
+            const t = db.transaction([STORE_NAME],'readwrite'); const s = t.objectStore(STORE_NAME);
+            const req = s.get(id);
+            req.onsuccess = async (e) => {
+                const dbItem = e.target.result;
+                if(dbItem && dbItem.payload) {
+                    const plain = await Crypto.decrypt(dbItem.payload, vaultKey);
+                    plain.isFavorite = !plain.isFavorite;
+                    dbItem.payload = await Crypto.encrypt(plain, vaultKey);
+                    s.put(dbItem);
+                    loadGallery();
+                }
+            };
+        };
+        window.editItem = (id) => {
+             const t = db.transaction([STORE_NAME], 'readonly'); const s = t.objectStore(STORE_NAME);
+             s.get(id).onsuccess = async (e) => {
+                 const dbItem = e.target.result;
+                 const i = await Crypto.decrypt(dbItem.payload, vaultKey);
+                 editingItemId = i.id; document.getElementById('formTitle').innerText = "Editar ID: " + i.id; document.getElementById('actionButton').innerText = "Actualizar (Re-cifrar)"; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('inputCategory').value = i.category || ''; document.getElementById('inputDescription').value = i.description || ''; document.getElementById('inputTags').value = (i.tags || []).join(', '); const meta = document.getElementById('editItemId'); meta.dataset.timestamp = i.timestamp; meta.dataset.currentImage = i.imageData; meta.dataset.favorite = i.isFavorite; if(i.imageData.startsWith('data:')) { selectSource('file'); currentImageFile = null; tempCompressedImage=i.imageData; document.getElementById('fileNameDisplay').innerText = "Imagen Descifrada"; } else { selectSource('url'); document.getElementById('inputImageUrl').value = i.imageData; } updatePreviewText(); updateImagePreview(); window.scrollTo({top:0,behavior:'smooth'});
+             };
+        };
+
         function renderGalleryHTML(items) { const container = document.getElementById('galleryContainer'); while (container.firstChild) container.removeChild(container.firstChild); const total = items.length; const start = (currentPage - 1) * itemsPerPage; const show = items.slice(start, start + itemsPerPage); document.getElementById('itemCount').innerText = total + " Artefactos"; if (currentLayout === 'grid') { container.className = 'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6'; } else { container.className = 'grid grid-cols-1 gap-4'; } if (total === 0) { const emptyDiv = document.createElement('div'); emptyDiv.className = 'p-10 text-center text-gothic-accent font-heading tracking-widest'; emptyDiv.textContent = 'El vacío devuelve la mirada...'; container.appendChild(emptyDiv); return; } const lastId = sessionStorage.getItem(lastCreatedIdKey); show.forEach(item => { const imgUrl = sanitizeURL(item.imageData); const card = document.createElement('div'); card.onclick = () => openModal(item.id); card.ondblclick = () => editItem(item.id); if (currentLayout === 'grid') { card.className = "masonry-item gothic-panel rounded-sm overflow-hidden relative group cursor-pointer break-inside-avoid transition-all duration-300 hover:shadow-gothic-glow"; const imgDiv = document.createElement('div'); imgDiv.className = "w-full relative"; const img = document.createElement('img'); img.src = imgUrl; img.className = "w-full h-auto block"; img.loading = "lazy"; imgDiv.appendChild(img); const actions = document.createElement('div'); actions.className = "absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2"; const delBtn = document.createElement('button'); delBtn.className = "bg-black/80 text-gothic-primary p-2 rounded-full border border-gothic-primary hover:bg-gothic-primary hover:text-white transition-colors shadow-lg"; delBtn.textContent = "🗑"; delBtn.onclick = (e) => { e.stopPropagation(); showGothicConfirm('delete_item', item.id); }; actions.appendChild(delBtn); imgDiv.appendChild(actions); card.appendChild(imgDiv); const info = document.createElement('div'); info.className = "p-4 bg-gradient-to-b from-gothic-panel to-black"; const cat = document.createElement('div'); cat.className = "text-[10px] text-gothic-gold font-bold uppercase tracking-widest mb-1"; cat.textContent = item.category || 'SIN CLASIFICAR'; const title = document.createElement('h3'); title.className = "text-lg text-gothic-text font-heading leading-tight mb-3"; title.textContent = item.description; const tagsDiv = document.createElement('div'); tagsDiv.className = "flex flex-wrap gap-1 mt-2 pt-2 border-t border-gothic-accent/20"; (item.tags || []).forEach(t => { const tag = document.createElement('span'); tag.className = "text-[9px] bg-gothic-accent/10 border border-gothic-accent/30 px-2 py-0.5 rounded text-gothic-text/70"; tag.textContent = t; tagsDiv.appendChild(tag); }); info.append(cat, title, tagsDiv); card.appendChild(info); } else { card.className = "gothic-panel rounded-sm relative group cursor-pointer flex items-center p-3 transition-all hover:scale-[1.005] hover:border-gothic-primary/50"; const thumb = document.createElement('div'); thumb.className = "w-16 h-16 bg-cover bg-center mr-4 border border-gothic-accent flex-shrink-0"; thumb.style.backgroundImage = `url('${imgUrl}')`; card.appendChild(thumb); const textDiv = document.createElement('div'); textDiv.className = "flex-grow min-w-0"; const h3 = document.createElement('h3'); h3.className = "text-gothic-text font-heading text-lg truncate"; h3.textContent = item.description; const p = document.createElement('p'); p.className = "text-xs text-gothic-gold uppercase tracking-wider"; p.textContent = item.category; textDiv.append(h3, p); card.appendChild(textDiv); const delBtnList = document.createElement('button'); delBtnList.className = "ml-4 text-gothic-accent hover:text-red-500 transition-colors p-2 opacity-0 group-hover:opacity-100"; delBtnList.textContent = "🗑"; delBtnList.onclick = (e) => { e.stopPropagation(); showGothicConfirm('delete_item', item.id); }; card.appendChild(delBtnList); } const fav = document.createElement('button'); fav.className = `absolute bottom-2 right-2 z-20 transition-transform hover:scale-110 ${item.isFavorite ? 'text-yellow-500 drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]' : 'text-gray-600 hover:text-yellow-500'}`; fav.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'; fav.onclick = (e) => { e.stopPropagation(); toggleFavorite(item.id); }; card.appendChild(fav); if (selectMode) { const checkContainer = document.createElement('div'); checkContainer.className = "absolute top-2 left-2 z-50 p-1 bg-black/50 rounded"; checkContainer.onclick = (e) => e.stopPropagation(); const chk = document.createElement('input'); chk.type = 'checkbox'; chk.className = 'select-checkbox block'; chk.checked = selectedIds.has(item.id); chk.onchange = () => toggleSelection(item.id); checkContainer.appendChild(chk); card.appendChild(checkContainer); } container.appendChild(card); }); updatePaginationControls(total); }
         function updatePaginationControls(total) { const totalPages = Math.ceil(total / itemsPerPage); const prevBtn = document.getElementById('prevPageBtn'); const nextBtn = document.getElementById('nextPageBtn'); const pageInfo = document.getElementById('pageInfo'); const controls = document.getElementById('paginationControls'); pageInfo.innerText = `Página ${currentPage} de ${totalPages || 1}`; prevBtn.disabled = (currentPage === 1) || (total === 0); nextBtn.disabled = (currentPage === totalPages) || (total === 0); if (totalPages <= 1) controls.classList.add('hidden'); else controls.classList.remove('hidden'); }
         function changePage(d) { currentPage+=d; loadGallery(); window.scrollTo({top:0, behavior:'smooth'}); }
         window.openModal = (id) => { db.transaction([STORE_NAME]).objectStore(STORE_NAME).get(id).onsuccess = async (e) => { const dbItem = e.target.result; const i = await Crypto.decrypt(dbItem.payload, vaultKey); document.getElementById('modalImg').src = sanitizeURL(i.imageData); document.getElementById('modalTitle').innerText = i.description; document.getElementById('modalCategory').innerText = i.category; const tc = document.getElementById('modalTags'); tc.innerHTML=''; (i.tags||[]).forEach(t=>{const s=document.createElement('span'); s.className='text-xs bg-gothic-primary/20 px-2 rounded border border-gothic-primary/50 text-gothic-text'; s.textContent=t; tc.appendChild(s); }); document.getElementById('imageModal').classList.remove('hidden'); document.getElementById('modalDownload').href = i.imageData; }; };
 
-        // --- P2P SYNC LOGIC ---
+        // --- P2P SYNC LOGIC (CORREGIDA V10.4) ---
         let pc, dataChannel, syncRole = 'host'; const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
         
+        function resetSyncModalUI() {
+            document.getElementById('localOffer').value = '';
+            document.getElementById('remoteAnswer').value = '';
+            document.getElementById('syncStatus').classList.add('hidden');
+            document.getElementById('syncProgress').classList.add('hidden');
+            document.getElementById('step2').classList.remove('active-step');
+            
+            document.getElementById('btnHost').className = "flex-1 py-2 text-gothic-primary border-b-2 border-gothic-primary bg-gothic-accent/10 font-bold uppercase tracking-wider";
+            document.getElementById('btnGuest').className = "flex-1 py-2 text-gothic-text font-bold uppercase tracking-wider";
+        }
+
         window.toggleSyncModal = () => { 
             const m = document.getElementById('syncModal'); 
             if (m.classList.contains('hidden')) { 
                 m.classList.remove('hidden'); 
+                resetSyncModalUI();
                 setSyncRole('host'); 
             } else { 
                 m.classList.add('hidden'); 
-                cancelSync(false); // Cierra la conexión sin Toast
+                cancelSync(false);
             } 
         };
 
-        // --- FUNCIÓN CANCELAR VÍNCULO (NUEVA) ---
         window.cancelSync = (showToast = true) => {
             if (pc) pc.close(); 
             pc = null;
-            document.getElementById('syncStatus').classList.add('hidden');
-            document.getElementById('syncProgress').classList.add('hidden');
-            document.getElementById('localOffer').value = '';
-            document.getElementById('remoteAnswer').value = '';
-            document.getElementById('step2').classList.remove('active-step');
-            
-            // Restablecer la selección de rol inicial
-            document.getElementById('btnHost').className = "flex-1 py-2 text-gothic-primary border-b-2 border-gothic-primary bg-gothic-accent/10 font-bold uppercase tracking-wider";
-            document.getElementById('btnGuest').className = "flex-1 py-2 text-gothic-text font-bold uppercase tracking-wider";
-            
+            resetSyncModalUI();
             if (showToast) showGothicToast("Vínculo WebRTC Cancelado.");
         };
 
-        window.setSyncRole = (r) => { syncRole = r; cancelSync(false); if(r==='host') initHost(); else initGuest(); };
-        async function initHost() { if(pc) pc.close(); pc = new RTCPeerConnection(rtcConfig); pc.onicecandidate = e => { if(!e.candidate) { document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription)); document.getElementById('step2').classList.add('active-step'); }}; dataChannel = pc.createDataChannel("g"); setupDC(dataChannel); const o = await pc.createOffer(); await pc.setLocalDescription(o); }
-        function initGuest() { if(pc) pc.close(); pc = new RTCPeerConnection(rtcConfig); pc.ondatachannel = e => { dataChannel = e.channel; setupDC(dataChannel); }; }
-        function setupDC(dc) { dc.onopen = () => { document.getElementById('syncStatus').classList.remove('hidden'); document.getElementById('hostActions').classList.toggle('hidden', syncRole !== 'host'); document.getElementById('guestActions').classList.toggle('hidden', syncRole !== 'guest'); }; dc.onmessage = handleDataMessage; }
-        window.finishHandshake = async () => { const r = document.getElementById('remoteAnswer').value; if(!r) return; try{ const d = JSON.parse(atob(r)); await pc.setRemoteDescription(d); if(syncRole==='guest'){ const a = await pc.createAnswer(); await pc.setLocalDescription(a); }} catch(e){ showGothicToast("Código corrupto o inválido.", 'error'); }};
+        window.setSyncRole = (r) => { 
+            syncRole = r; 
+            cancelSync(false);
+            
+            const btnHost = document.getElementById('btnHost');
+            const btnGuest = document.getElementById('btnGuest');
+            
+            if (r === 'host') {
+                btnHost.className = "flex-1 py-2 text-gothic-primary border-b-2 border-gothic-primary bg-gothic-accent/10 font-bold uppercase tracking-wider";
+                btnGuest.className = "flex-1 py-2 text-gray-500 hover:text-gothic-text font-bold uppercase tracking-wider";
+                initHost();
+            } else {
+                btnGuest.className = "flex-1 py-2 text-gothic-primary border-b-2 border-gothic-primary bg-gothic-accent/10 font-bold uppercase tracking-wider";
+                btnHost.className = "flex-1 py-2 text-gray-500 hover:text-gothic-text font-bold uppercase tracking-wider";
+                initGuest();
+                // Destino necesita el paso 2 activo para pegar inmediatamente
+                document.getElementById('step2').classList.add('active-step'); 
+            }
+        };
+        
+        async function initHost() { 
+            if(pc) pc.close(); pc = new RTCPeerConnection(rtcConfig); 
+            pc.onicecandidate = e => { 
+                if(!e.candidate) { 
+                    document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription)); 
+                    document.getElementById('step2').classList.add('active-step'); 
+                }
+            }; 
+            dataChannel = pc.createDataChannel("g"); 
+            setupDC(dataChannel); 
+            const o = await pc.createOffer(); 
+            await pc.setLocalDescription(o); 
+            document.getElementById('localOffer').placeholder = "Copia este código y envíalo al Destino...";
+        }
+        
+        function initGuest() { 
+            if(pc) pc.close(); pc = new RTCPeerConnection(rtcConfig); 
+            pc.ondatachannel = e => { dataChannel = e.channel; setupDC(dataChannel); }; 
+            document.getElementById('localOffer').placeholder = "Pega aquí el código del Origen primero...";
+        }
+        
+        function setupDC(dc) { 
+            dc.onopen = () => { 
+                document.getElementById('syncStatus').classList.remove('hidden'); 
+                document.getElementById('hostActions').classList.toggle('hidden', syncRole !== 'host'); 
+                document.getElementById('guestActions').classList.toggle('hidden', syncRole !== 'guest'); 
+            }; 
+            dc.onmessage = handleDataMessage; 
+        }
+
+        window.finishHandshake = async () => { 
+            const r = document.getElementById('remoteAnswer').value; 
+            if(!r) return showGothicToast("Pega el código remoto.", 'error'); 
+            try{ 
+                const d = JSON.parse(atob(r)); 
+                await pc.setRemoteDescription(d); 
+                if(syncRole==='guest'){ 
+                    const a = await pc.createAnswer(); 
+                    await pc.setLocalDescription(a); 
+                    document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription));
+                }
+            } catch(e){ 
+                showGothicToast("Código corrupto o inválido.", 'error'); 
+            }
+        };
+
         window.copyToClipboard = (id) => { navigator.clipboard.writeText(document.getElementById(id).value); showGothicToast("Copiado."); };
         
         async function startDataSync() {
