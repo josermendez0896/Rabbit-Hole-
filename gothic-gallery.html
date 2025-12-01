@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://placehold.co data: blob:;">
-    <title>Ars Gothica 10.4 (Definitiva)</title>
+    <title>Ars Gothica 10.5 (Estable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const themes = {
@@ -85,7 +85,7 @@
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-full bg-gothic-accent/10 blur-3xl -z-10 pointer-events-none"></div>
             <div>
                 <h1 class="text-5xl md:text-6xl font-black text-gothic-text uppercase tracking-widest font-heading drop-shadow-lg">Ars <span class="text-gothic-primary text-shadow-glow">Gothica</span></h1>
-                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.4)</p>
+                <p class="text-gothic-primary/70 italic text-lg mt-2 font-heading tracking-wider">La Obra Maestra (v10.5)</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
                  <button onclick="lockVault()" class="p-3 border-2 border-gothic-primary bg-gothic-panel text-gothic-primary rounded-full hover:bg-red-700 hover:text-white transition-all shadow-gothic-glow" title="Cerrar Bóveda (Pánico)">🔒</button>
@@ -217,6 +217,13 @@
     </div>
 
     <script>
+        // --- MANEJO DE ERRORES GLOBAL (V10.5) ---
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("ERROR CATASTRÓFICO EN ARS GOTHICA:", message, error);
+            showGothicToast("¡Error Catastrófico! La aplicación falló. Consulta la consola.", 'error');
+            return true; 
+        };
+
         const DB_NAME = 'GothicGalleryDB_X_Masterpiece'; const DB_VERSION = 1; const STORE_NAME = 'images'; const PURGE_KEYWORD = 'PURGAR'; const itemsPerPage = 12; 
         let db; let currentImageFile = null; let tempCompressedImage = null; let editorOriginalImage = null;
         let currentPage = 1; let currentFilteredItems = []; let imageSource = 'file'; let editingItemId = null; 
@@ -440,7 +447,7 @@
             } catch(e) { console.error(e); document.getElementById('globalLoader').classList.add('hidden'); showGothicToast("Error de Cifrado.", 'error'); }
         };
 
-        // --- OPTIMIZACIÓN DE CARGA (BATCH DECRYPTION) ---
+        // --- OPTIMIZACIÓN DE CARGA (BATCH DECRYPTION CON TOLERANCIA A FALLOS V10.5) ---
         window.loadGallery = () => {
             if(!vaultKey || !db) return;
             const t = db.transaction([STORE_NAME], 'readonly');
@@ -470,7 +477,18 @@
                                 const item = await Crypto.decrypt(rawItems[i].payload, vaultKey);
                                 decryptedBatch.push(item);
                             }
-                        } catch (err) { console.error("Error descifrando", rawItems[i].id); }
+                        } catch (err) { 
+                            console.error(`ERROR (V10.5): Falla al descifrar el artefacto ID ${rawItems[i].id}. Se está saltando.`, err); 
+                            // FALLBACK SEGURO: Inyectar un objeto que no rompa el render
+                            decryptedBatch.push({
+                                id: rawItems[i].id,
+                                description: "¡ARTEFACTO CORRUPTO!",
+                                category: "ERROR CRÍTICO",
+                                tags: ["#CORRUPTO"],
+                                imageData: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='red' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/></svg>" 
+                            });
+                            showGothicToast("Un artefacto falló el descifrado y fue omitido.", 'error');
+                        }
                     }
                     setTimeout(() => processBatch(end), 0);
                 };
@@ -496,7 +514,7 @@
                        if(sort==='title_asc') return (a.description||'').localeCompare(b.description||'');
                        if(sort==='title_desc') return (b.description||'').localeCompare(a.description||'');
                        if(sort==='timestamp_asc') return a.timestamp - b.timestamp;
-                       return b.timestamp - a.timestamp;
+                       return b.timestamp - a.pathname - a.timestamp;
                     });
                     currentFilteredItems = items; currentPage = 1; renderGalleryHTML(currentFilteredItems);
                     showGothicToast("Cripta Abierta.");
@@ -543,7 +561,7 @@
         function changePage(d) { currentPage+=d; loadGallery(); window.scrollTo({top:0, behavior:'smooth'}); }
         window.openModal = (id) => { db.transaction([STORE_NAME]).objectStore(STORE_NAME).get(id).onsuccess = async (e) => { const dbItem = e.target.result; const i = await Crypto.decrypt(dbItem.payload, vaultKey); document.getElementById('modalImg').src = sanitizeURL(i.imageData); document.getElementById('modalTitle').innerText = i.description; document.getElementById('modalCategory').innerText = i.category; const tc = document.getElementById('modalTags'); tc.innerHTML=''; (i.tags||[]).forEach(t=>{const s=document.createElement('span'); s.className='text-xs bg-gothic-primary/20 px-2 rounded border border-gothic-primary/50 text-gothic-text'; s.textContent=t; tc.appendChild(s); }); document.getElementById('imageModal').classList.remove('hidden'); document.getElementById('modalDownload').href = i.imageData; }; };
 
-        // --- P2P SYNC LOGIC (CORREGIDA V10.4) ---
+        // --- P2P SYNC LOGIC ---
         let pc, dataChannel, syncRole = 'host'; const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
         
         function resetSyncModalUI() {
@@ -591,7 +609,6 @@
                 btnGuest.className = "flex-1 py-2 text-gothic-primary border-b-2 border-gothic-primary bg-gothic-accent/10 font-bold uppercase tracking-wider";
                 btnHost.className = "flex-1 py-2 text-gray-500 hover:text-gothic-text font-bold uppercase tracking-wider";
                 initGuest();
-                // Destino necesita el paso 2 activo para pegar inmediatamente
                 document.getElementById('step2').classList.add('active-step'); 
             }
         };
